@@ -1,0 +1,23 @@
+{% extends 'attendance/base.html' %}
+{% block title %}Employee Locations{% endblock %}
+{% block content %}
+<h4>Live Employee Map</h4>
+<div id="map" style="height:500px; width:100%;"></div>
+<script>
+async function loadMap() {
+  const res = await fetch("{% url 'attendance:api_all_locations' %}");
+  const data = await res.json();
+
+  const map = L.map('map').setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  data.forEach(emp => {
+    const color = emp.is_online ? 'green' : 'gray';
+    L.circleMarker([emp.last_lat, emp.last_lng], {color})
+      .bindPopup(`<b>${emp.name}</b><br>Last seen: ${emp.last_seen}<br>Status: ${emp.is_online ? 'Online' : 'Offline'}`)
+      .addTo(map);
+  });
+}
+loadMap();
+</script>
+{% endblock %}
