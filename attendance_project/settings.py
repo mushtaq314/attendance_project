@@ -33,7 +33,8 @@ DEBUG = True
 #ALLOWED_HOSTS = ['192.168.16.117', 'localhost', '127.0.0.1']
 
 #ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = ['attendace.onrender.com']
+#ALLOWED_HOSTS = ['attendance-project-aoke.onrender.com']
+ALLOWED_HOSTS = ['attendance-project-aoke.onrender.com', '127.0.0.1', 'localhost']
 
 # Application definition
 
