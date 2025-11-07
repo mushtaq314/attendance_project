@@ -1,0 +1,144 @@
+{% extends 'attendance/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <h3>Admin Panel</h3>
+  <p class="text-muted">Add/Delete employees and export attendance to Excel.</p>
+
+  <!-- Add Employee -->
+  <div class="card p-3 shadow-sm mt-3">
+    <h5>Add Employee</h5>
+    <form method="post" action="{% url 'attendance:add_employee' %}">
+      {% csrf_token %}
+      <div class="row g-2 align-items-center">
+        <div class="col-md-3">
+          <input type="text" name="name" placeholder="Name" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="emp_code" placeholder="Employee Code" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="pin" placeholder="Optional PIN (leave blank to auto-generate)" class="form-control">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-success w-100">Add</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Employees Table -->
+  <div class="card p-3 shadow-sm mt-4">
+    <h5>Employees</h5>
+    <table class="table table-bordered table-sm mt-2 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Code</th>
+          <th>Name</th>
+          <th>PIN Options</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+          <tr>
+            <td>{{ emp.id }}</td>
+            <td>{{ emp.emp_code }}</td>
+            <td>{{ emp.name }}</td>
+            <td>
+              <form method="post" action="{% url 'attendance:set_employee_pin' emp.id %}" class="d-flex gap-2">
+                {% csrf_token %}
+                <input type="text" name="manual_pin" class="form-control form-control-sm" placeholder="4-digit PIN" maxlength="4" style="width:100px;">
+                <button type="submit" class="btn btn-sm btn-primary">Set PIN</button>
+                <button type="submit" name="manual_pin" value="" class="btn btn-sm btn-warning">Auto</button>
+              </form>
+            </td>
+            <td>
+              <form method="post" action="{% url 'attendance:delete_employee' emp.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center">No employees found</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Export Section -->
+  <div class="card p-3 shadow-sm mt-4">
+    <h5>Export</h5>
+    <form method="get" action="{% url 'attendance:export_excel' %}">
+      <div class="row g-2">
+        <div class="col-md-3"><input type="date" name="start" class="form-control"></div>
+        <div class="col-md-3"><input type="date" name="end" class="form-control"></div>
+        <div class="col-md-3"><button type="submit" class="btn btn-primary w-100">Export to Excel</button></div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="card mt-4 p-3">
+    <h5>Filter Logs</h5>
+    <form id="filterForm" class="d-flex align-items-center flex-wrap gap-2">
+      <select id="filterEmployee" class="form-select" style="width:200px;">
+        <option value="">All Employees</option>
+        {% for emp in employees %}
+          <option value="{{ emp.id }}">{{ emp.name }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="date" id="filterStart" class="form-control" style="width:180px;">
+      <input type="date" id="filterEnd" class="form-control" style="width:180px;">
+
+      <button type="button" class="btn btn-primary" id="applyFilter">Apply Filter</button>
+      <button type="button" class="btn btn-secondary" id="clearFilter">Clear</button>
+    </form>
+  </div>
+
+  <!-- Logs Section -->
+  <div class="card mt-3 p-3" id="logsContainer">
+    {% include "attendance/logs_table.html" %}
+  </div>
+</div>
+
+{% if generated_pin %}
+<script>
+  alert("PIN for {{ generated_employee }} is: {{ generated_pin }}");
+</script>
+{% endif %}
+
+<!-- AJAX Filter Script -->
+<script>
+document.getElementById("applyFilter").onclick = function() {
+  const emp = document.getElementById("filterEmployee").value;
+  const start = document.getElementById("filterStart").value;
+  const end = document.getElementById("filterEnd").value;
+
+  fetch(`/filter-logs/?employee=${emp}&start=${start}&end=${end}`)
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById("logsContainer").innerHTML = html;
+    });
+};
+
+document.getElementById("clearFilter").onclick = function() {
+  document.getElementById("filterEmployee").value = "";
+  document.getElementById("filterStart").value = "";
+  document.getElementById("filterEnd").value = "";
+  document.getElementById("applyFilter").click();
+};
+</script>
+
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'attendance/base.html' %}
+{% block title %}Employee - Attendance{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card card-modern p-4">
+      <div class="topbar mb-3">
+        <strong>Welcome, {{ employee.name }}</strong>
+        <div class="small">{{ employee.emp_code }}</div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-success btn-pill" onclick="sendAction('login')">Login</button>
+        <button class="btn btn-danger btn-pill" onclick="sendAction('logout')">Logout</button>
+        <button class="btn btn-warning btn-pill" onclick="sendAction('break_start')">Break Start</button>
+        <button class="btn btn-primary btn-pill" onclick="sendAction('break_end')">Break End</button>
+      </div>
+
+      <div id="status" class="mt-3"></div>
+
+      <div class="mt-3">
+        <a href="{% url 'attendance:employee_logout' %}" class="btn btn-link">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card card-modern p-3">
+      <h6>Instructions</h6>
+      <ul>
+        <li>Use only buttons — no manual time editing.</li>
+        <li>All timestamps are saved server-side.</li>
+        <li>Location access must be allowed for accurate tracking.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function sendAction(action) {
+  const statusEl = document.getElementById('status');
+  statusEl.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Getting location...';
+
+  // ✅ Get location first
+  if (!navigator.geolocation) {
+    statusEl.innerHTML = `<div class="alert alert-danger">Geolocation not supported by your browser.</div>`;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async function(position) {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      statusEl.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Sending...';
+
+      try {
+        const resp = await fetch("{% url 'attendance:api_action' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            action: action,
+            latitude: latitude,
+            longitude: longitude
+          })
+        });
+
+        const data = await resp.json();
+        if (data.ok) {
+          statusEl.innerHTML = `<div class="alert alert-success">
+            Action "${data.action}" recorded at ${new Date(data.ts).toLocaleString()}<br>
+            <small>Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</small>
+          </div>`;
+        } else {
+          statusEl.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'unknown'}</div>`;
+        }
+      } catch (err) {
+        statusEl.innerHTML = `<div class="alert alert-danger">Network error</div>`;
+      }
+  }, function(error) {
+      statusEl.innerHTML = `<div class="alert alert-danger">Location access denied or unavailable.</div>`;
+  });
+}
+
+// Helper for CSRF token
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+{% endblock %}

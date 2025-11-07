@@ -1,0 +1,31 @@
+ 
+
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Employee</th>
+      <th>Action</th>
+      <th>Time</th>
+      <th>Location</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for log in logs %}
+    <tr>
+      <td>{{ log.employee.name }}</td>
+      <td>{{ log.action }}</td>
+      <td>{{ log.ts|date:"M d, Y H:i" }}</td>
+      <td>
+        {% if log.latitude and log.longitude %}
+          <iframe width="250" height="150"
+            src="https://maps.google.com/maps?q={{ log.latitude }},{{ log.longitude }}&z=15&output=embed">
+          </iframe>
+        {% else %}
+          N/A
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
