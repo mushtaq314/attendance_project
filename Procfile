@@ -1,1 +1,1 @@
-web: python manage.py migrate && gunicorn attendance_project.wsgi
+web: gunicorn attendance_project.wsgi
